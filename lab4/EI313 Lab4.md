@@ -19,9 +19,15 @@
 
 <img src="./figs/image-20211214194212389.png" alt="image-20211214194212389" style="zoom:33%;" />
 
-然后启用Hugepage。从下图可以看出，启用Hugepage前，宿主机上`HugePages_Total`为0，启用后为1024，说明设置了1024个大小为2kB的Hugepage。
+然后启用Hugepage。首先检测每个Hugepage的大小。
 
-<img src="./figs/image-20211214194242806.png" alt="image-20211214194242806" style="zoom:33%;" />
+<img src="./figs/image-20211215204538153.png" alt="image-20211215204538153" style="zoom: 33%;" />
+
+每个Hugepage大小为2MB，由于预计分配给QEMU虚拟机的内存大小为4GB，这里我打算分配总大小4GB的Hugepage。因此是创建文件`/etc/sysctl.d/40-hugepage.conf`并写入`vm.nr_hugepages=2048`，设置了2048个大小为2MB的Hugepage。然后重启，检查Hugepage情况。
+
+<img src="./figs/image-20211215204731871.png" alt="image-20211215204731871" style="zoom:33%;" />
+
+可以看到Hugepage启用成功。
 
 ## 配置虚拟机，并设置其使用/不使用Hugepage[^1][^2]
 
@@ -29,14 +35,14 @@
 >
 > (3) Create another QEMU KVM VM without hugepages.
 
-在这里我们直接下载https://mirror.sjtu.edu.cn/archlinux/images/latest/中的archLinux镜像，并使用virt-manager进行安装。虚拟机信息如下。
+在这里我们直接下载https://mirror.sjtu.edu.cn/archlinux/images/latest/中的archLinux镜像，并使用virt-manager进行安装，然后使用ssh连接虚拟机方便测试。虚拟机信息如下。
 
-<img src="./figs/image-20211214223625647.png" alt="image-20211214223625647" style="zoom: 50%;" />
+<img src="./figs/image-20211215204113543.png" alt="image-20211215204113543" style="zoom:33%;" />
 
 要使虚拟机使用宿主机的Hugepage，只需要在编辑虚拟机对应的xml文件。我们在宿主机中输入以下命令进行编辑。
 
 ```bash
-sudo virsh edit archlinux@beryllium
+sudo virsh edit archlinux
 ```
 
 写入以下几行：
@@ -47,19 +53,19 @@ sudo virsh edit archlinux@beryllium
 </memoryBacking>
 ```
 
-编辑后的文件如下图所示：
+编辑后的文件如下图所示（截取部分）：
 
-<img src="./figs/image-20211214213112803.png" alt="image-20211214213112803" style="zoom:33%;" />
+<img src="./figs/image-20211215211053010.png" alt="image-20211215211053010" style="zoom:33%;" />
 
 要使虚拟机不使用宿主机的Hugepage，则将这几行删去即可。
 
-## 在虚拟机中开启Hugepage并安装测试所用软件
+## 在虚拟机中开启Hugege并安装测试所用软件
 
 > (4) In both VMs allocate and use hugepages or not.
 
-方法与宿主机中完全相同。在虚拟机中启动了512个大小为2kB的Hugepage。
+方法与宿主机中完全相同。在虚拟机中启动了1024个大小为2MB的Hugepage。
 
-<img src="./figs/image-20211214221150354.png" alt="image-20211214221150354" style="zoom:50%;" />
+<img src="./figs/image-20211215204950357.png" alt="image-20211215204950357" style="zoom:33%;" />
 
 安装sysbench：
 
@@ -73,49 +79,41 @@ sudo pacman -S sysbench
 
 这里我使用sysbench进行测试，首先编写测试脚本如下：
 
-<img src="./figs/image-20211214212714557.png" alt="image-20211214212714557" style="zoom:50%;" />
+<img src="./figs/image-20211215210328605.png" alt="image-20211215210328605" style="zoom:33%;" />
 
 其中，
 
-* `--memory-block-size`选项代表了测试内存块的大小，这里我将其设置为测试时输入。
+* `--memory-block-size`选项代表了测试内存块的大小，这里我将其设置为测试时输入，方便找出较好的测试内存块大小。
 * `--memory-total-size`选项代表了传输数据的总大小，这里我将其设置为`2048G`。
-
 * `--memory-hugetlb`选项决定了测试时虚拟机是否启用Hugepage，这里我将其设置为测试时输入。
+* `--memory-oper`选项决定了测试的方式，这里我先测试内存读取，再测试内存写入。
 * `--memory-access-mode`选项代表了测试时的存取方式，这里我将其设置为`rnd`，代表随机读写。
 
-接下来开始测试。由于默认的内存页大小为4kB，而Hugepage大小为2048kB，测试内存块的大小应该设置得大一些，从而凸显出二者的差别。经过测试，我发现当测试内存块的大小设置为刚好2MB时，效果较好。
+接下来开始测试。由于默认的内存页大小为4kB，而Hugepage大小为2048kB，测试内存块的大小应该设置得大一些，从而凸显出二者的差别。经过测试，我发现当测试内存块的大小设置为32MB时，效果较好。
 
 ### 宿主机不启用Hugepage，虚拟机不启用Hugepage
 
-<div align=center>
-<img src="./figs/image-20211214222627171.png" alt="image-20211214222627171" style="zoom:40%;" /><img src="./figs/image-20211214222547819.png" alt="image-20211214222547819" style="zoom:40%;" /><img src="./figs/image-20211214222518151.png" alt="image-20211214222518151" style="zoom:40%;" />
-</div>
+<img src="./figs/image-20211215210256966.png" alt="image-20211215210256966" style="zoom:33%;" />
 
-三次测试，平均写入速率为154.73MiB/s。
+三次测试，平均读取速率为809.27MiB/s，平均写入速率为1536.49MiB/s。
 
 ### 宿主机不启用Hugepage，虚拟机启用Hugepage
 
-<div align=center>
-<img src="./figs/image-20211214222712423.png" alt="image-20211214222712423" style="zoom:40%;" /><img src="./figs/image-20211214222743200.png" alt="image-20211214222743200" style="zoom:40%;" /><img src="./figs/image-20211214222826430.png" alt="image-20211214222826430" style="zoom:40%;" />
-</div>
+<img src="./figs/image-20211215210522825.png" alt="image-20211215210522825" style="zoom:33%;" />
 
-三次测试，平均写入速率为173.47MiB/s。
+三次测试，平均读取速率为812.24MiB/s，平均写入速率为1755.32MiB/s。
 
 ### 宿主机启用Hugepage，虚拟机不启用Hugepage
 
-<div align=center>
-<img src="./figs/image-20211214222103882.png" alt="image-20211214222103882" style="zoom:40%;" /><img src="./figs/image-20211214222030885.png" alt="image-20211214222030885" style="zoom:40%;" /><img src="./figs/image-20211214222000995.png" alt="image-20211214222000995" style="zoom:40%;" />
-</div>
+<img src="./figs/image-20211215211304205.png" alt="image-20211215211304205" style="zoom:33%;" />
 
-三次测试，平均写入速率为164.75MiB/s。
+三次测试，平均读取速率为829.13MiB/s，平均写入速率为1787.12MiB/s。
 
 ### 宿主机启用Hugepage，虚拟机启用Hugepage
 
-<div align=center>
-<img src="./figs/image-20211214221750714.png" alt="image-20211214221750714" style="zoom: 40%;" /><img src="./figs/image-20211214221826687.png" alt="image-20211214221826687" style="zoom:40%;" /><img src="./figs/image-20211214221903442.png" alt="image-20211214221903442" style="zoom:40%;" />
-</div>
+<img src="./figs/image-20211215211539086.png" alt="image-20211215211539086" style="zoom:33%;" />
 
-三次测试，平均写入速率为177.50MiB/s。
+三次测试，平均读取速率为888.42MiB/s，平均写入速率为2059.01MiB/s。
 
 ## 结论与分析
 
@@ -125,12 +123,21 @@ sudo pacman -S sysbench
 
 测试结果如下：
 
+内存读取速度：
+
 |                          | 虚拟机不启用Hugepage | 虚拟机启用Hugepage |
 | ------------------------ | -------------------- | ------------------ |
-| **宿主机不启用Hugepage** | 154.73MiB/s          | 173.47MiB/s        |
-| **宿主机启用Hugepage**   | 164.75MiB/s          | 177.50MiB/s        |
+| **宿主机不启用Hugepage** | 809.27MiB/s          | 812.24MiB/s        |
+| **宿主机启用Hugepage**   | 829.13MiB/s          | 888.42MiB/s        |
 
-可以看出，无论是宿主机还是虚拟机，启用Hugepage都会对内存的随机写入性能带来一定提升。当二者均启用Hugepage时，其性能要比均不启用时高出14.7%。
+内存写入速度：
+
+|                          | 虚拟机不启用Hugepage | 虚拟机启用Hugepage |
+| ------------------------ | -------------------- | ------------------ |
+| **宿主机不启用Hugepage** | 1536.49MiB/s         | 1755.32MiB/s       |
+| **宿主机启用Hugepage**   | 1787.12MiB/s         | 2059.01MiB/s       |
+
+可以看出，无论是宿主机还是虚拟机，启用Hugepage都会对内存的随机写入性能带来一定提升。当二者均启用Hugepage时，其内存读取速率要比均不启用时高出9.8%，内存写入速率要比均不启用时高出34.0%。
 
 ### 分析
 
