@@ -10,7 +10,7 @@ DPDK performance test.
 
 这里我继续使用Lab4中配置的虚拟机，并在宿主机上使用ssh连接虚拟机，从而方便实验的进行。虚拟机信息如下：
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20211215182225604.png" alt="image-20211215182225604" style="zoom:33%;" />
+<img src="./figs/image-20211215182225604.png" alt="image-20211215182225604" style="zoom:33%;" />
 
 ## 配置DPDK
 
@@ -27,7 +27,7 @@ sudo pacman -S wget meson gcc python-pyelftools
 
 下载最新版DPDK：
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20211215173121229.png" alt="image-20211215173121229" style="zoom:33%;" />
+<img src="./figs/image-20211215173121229.png" alt="image-20211215173121229" style="zoom:33%;" />
 
 进入DPDK所在文件夹，输入以下命令进行编译安装。这里同时编译安装了l2fwd样例程序。
 
@@ -41,7 +41,7 @@ sudo ldconfig
 
 等待安装完成：
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20211215213900368.png" alt="image-20211215213900368" style="zoom:33%;" />
+<img src="./figs/image-20211215213900368.png" alt="image-20211215213900368" style="zoom:33%;" />
 
 ### 配置
 
@@ -49,7 +49,7 @@ sudo ldconfig
 
 在lab4中配置过Hugepage，因此不再赘述，具体信息如下：
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20211223225332951.png" alt="image-20211223225332951" style="zoom:33%;" />
+<img src="./figs/image-20211223225332951.png" alt="image-20211223225332951" style="zoom:33%;" />
 
 #### 网卡驱动绑定[^2]
 
@@ -57,7 +57,7 @@ sudo ldconfig
 
 首先编辑grub配置文件，在内核启动参数上加上`intel_iommu=off`以禁用IOMMU。
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106144852862.png" alt="image-20220106144852862" style="zoom:33%;" />
+<img src="./figs/image-20220106144852862.png" alt="image-20220106144852862" style="zoom:33%;" />
 
 然后重新生成grub配置，并重启。
 
@@ -67,11 +67,11 @@ sudo grub-mkconfig -o /boot/grub/grub.cfg
 
 注意，由于用于绑定的网卡必须处于关闭状态，考虑到虚拟机的网络连接需求，我使用virt-manager加入了两张虚拟网卡。
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106150036152.png" alt="image-20220106150036152" style="zoom:33%;" />
+<img src="./figs/image-20220106150036152.png" alt="image-20220106150036152" style="zoom:33%;" />
 
 网卡信息如下：
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106150138511.png" alt="image-20220106150138511" style="zoom:33%;" />
+<img src="./figs/image-20220106150138511.png" alt="image-20220106150138511" style="zoom:33%;" />
 
 然后加载UIO模块。
 
@@ -81,7 +81,7 @@ sudo modprobe uio_pci_generic
 
 然后绑定网卡。首先查看设备信息：
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106150326711.png" alt="image-20220106150326711" style="zoom:33%;" />
+<img src="./figs/image-20220106150326711.png" alt="image-20220106150326711" style="zoom:33%;" />
 
 这里我选择eth1网卡进行绑定。
 
@@ -91,7 +91,7 @@ sudo dpdk-devbind.py -b uio_pci_generic 07:00.0
 
 绑定完成后再次查看信息，发现绑定成功。
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106150433356.png" alt="image-20220106150433356" style="zoom:33%;" />
+<img src="./figs/image-20220106150433356.png" alt="image-20220106150433356" style="zoom:33%;" />
 
 #### 编译并测试Helloworld样例程序
 
@@ -104,7 +104,7 @@ sudo ./helloworld
 
 能够输出正常结果，说明安装成功。
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106155117559.png" alt="image-20220106155117559" style="zoom:33%;" />
+<img src="./figs/image-20220106155117559.png" alt="image-20220106155117559" style="zoom:33%;" />
 
 ## 编译安装l2fwd和pktgen-dpdk
 
@@ -125,7 +125,7 @@ sudo ./dpdk-l2fwd -c 0x1 -n 4 -- -p 0x1 -T 1
 
 具体来说，`-c 0x1` 以十六进制掩码的形式表示CPU的核心，这里代表启用0号核心；`-n 4`意思是设置4个内存通道。`-p 0x1` 以十六进制掩码的形式表示端口号，这里代表配置0号端口；`-T 1` 代表每过1s刷新一次结果。一段时间后：
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106165649051.png" alt="image-20220106165649051" style="zoom: 50%;" />
+<img src="./figs/image-20220106165649051.png" alt="image-20220106165649051" style="zoom: 50%;" />
 
 ### pktgen-dpdk[^5]
 
@@ -140,7 +140,7 @@ tar xf pktgen-dpdk-pktgen-21.11.0.tar.xz
 
 然后编译安装，方法与DPDK相同。
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106160745719.png" alt="image-20220106160745719" style="zoom:33%;" />
+<img src="./figs/image-20220106160745719.png" alt="image-20220106160745719" style="zoom:33%;" />
 
 #### 测试运行
 
@@ -153,11 +153,11 @@ sudo ./pktgen -c 0x3 -n 4 -- -m "[1].0"
 
 具体来说，`-c 0x3` 以十六进制掩码的形式表示CPU的核心，这里代表启用0号和1号核心；`-n 4`意思是设置4个内存通道。`-m "[1].0"` 表示1号核心处理0号端口的收发包。特别要注意的是，pktgen-dpdk会使用一个核心作为initial lcore（上述命令中是0号核心），因此至少要启用两个CPU核心，并且处理端口的核心不能为initial lcore，否则报错如下：
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106181345555.png" alt="image-20220106181345555" style="zoom:33%;" />
+<img src="./figs/image-20220106181345555.png" alt="image-20220106181345555" style="zoom:33%;" />
 
 启动pktgen-dpdk如下，说明安装成功。
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106181902628.png" alt="image-20220106181902628" style="zoom:33%;" />
+<img src="./figs/image-20220106181902628.png" alt="image-20220106181902628" style="zoom:33%;" />
 
 ## 测试
 
@@ -167,7 +167,7 @@ sudo ./pktgen -c 0x3 -n 4 -- -m "[1].0"
 
 首先复制虚拟机并配置IP地址如下：
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106171848688.png" alt="image-20220106171848688" style="zoom: 20%;" />
+<img src="./figs/image-20220106171848688.png" alt="image-20220106171848688" style="zoom: 20%;" />
 
 然后重新创建 `default` 网络。
 
@@ -178,7 +178,7 @@ sudo virsh  net-start default
 
 然后开启两个虚拟机，发现IP地址配置成功。
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106172529366.png" alt="image-20220106172529366" style="zoom: 25%;" />
+<img src="./figs/image-20220106172529366.png" alt="image-20220106172529366" style="zoom: 25%;" />
 
 ### 测试
 
@@ -193,17 +193,17 @@ start 0
 
 运行效果如下。可以看到发送速率大约为2.5MPkts/s，但接收速率基本上为0。
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106182810566.png" alt="image-20220106182810566" style="zoom:33%;" />
+<img src="./figs/image-20220106182810566.png" alt="image-20220106182810566" style="zoom:33%;" />
 
 在VM2上开启l2fwd后，由于l2fwd会把收到的包转发回来，VM1上观察到接收速率为0.3MPkts/s左右，发送速率降低到1.5MPkts/s左右：
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106182613793.png" alt="image-20220106182613793" style="zoom:20%;" />
+<img src="./figs/image-20220106182613793.png" alt="image-20220106182613793" style="zoom:20%;" />
 
 #### 统计分析
 
 这里我统计l2fwd和pktgen-dpdk在运行了一分钟之后的结果并进行分析。截图如下：
 
-<img src="/home/adswt518/.config/Typora/typora-user-images/image-20220106183644258.png" alt="image-20220106183644258" style="zoom:20%;" />
+<img src="./figs/image-20220106183644258.png" alt="image-20220106183644258" style="zoom:20%;" />
 
 1. VM2上，l2fwd在一分钟内接收到20289050个包，成功转发出去20288314个，丢包73个，丢包率约为$3.6\times 10^{-6}$。
 2. VM1上总共发出了92653248个包，但VM2上只接受到20289050个包，说明在传输过程中丢包率较高。可能的原因是，由于发送数据包的速率太快，超出了缓冲区队列的大小，引起丢包。VM2上总共发出了20288314个包，VM1上接受到20031962个包，说明VM2向VM1发送数据包的过程中，丢包率较低。
