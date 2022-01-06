@@ -1,6 +1,6 @@
 # Lab5
 
-Choose one of DPDK performance test and  SPDK performance test. Welcome to choose both, but no extra score.
+Choose one of DPDK performance test and SPDK performance test. Welcome to choose both, but no extra score.
 
 DPDK performance test:
 
